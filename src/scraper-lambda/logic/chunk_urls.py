@@ -12,7 +12,7 @@
 
 import requests
 from bs4 import BeautifulSoup
-import common_utils.sqs as sqs
+# import common_utils.sqs as sqs
 import logging
 
 # Configure logging
@@ -23,7 +23,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Constants
-BASE_URL = "https://www.govinfo.gov/bulkdata/BILLS"
+BASE_URL = "https://www.govinfo.gov/bulkdata/json/BILLS"
 CHUNK_SIZE = 500
 SESSIONS = [1, 2]
 BILL_TYPES = ['hconres', 'hjres', 'hr', 'hres', 's', 'sconres', 'sjres', 'sres']
@@ -40,9 +40,13 @@ def fetch_page(url, retries=MAX_RETRIES):
     """
     for attempt in range(retries):
         try:
-            response = requests.get(url, timeout=30)
+            headers = {
+                "Accept": "application/json",
+                "User-Agent": "Mozilla/5.0 (compatible; govinfo-crawler/1.0)"
+            }
+            response = requests.get(url, timeout=30, headers=headers)
             response.raise_for_status()
-            return response
+            return response.json()
         except requests.exceptions.RequestException as e:
             logger.warning(f"Attempt {attempt + 1}/{retries} failed for {url}: {e}")
             if attempt == retries - 1:
@@ -60,31 +64,16 @@ def extract_xml_urls_from_page(url):
     """
     logger.info(f"Fetching page: {url}")
     response = fetch_page(url)
-    
+    xml_urls = []
+
     if not response:
         return []
     
-    try:
-        soup = BeautifulSoup(response.text, 'html.parser')
-        xml_urls = []
-        
-        # Find all <link> tags that contain XML URLs
-        links = soup.find_all('link')
-        
-        for link in links:
-            link_text = link.get_text(strip=True)
-            # Check if it's an XML URL
-            if link_text and link_text.endswith('.xml'):
-                xml_urls.append(link_text)
-                logger.debug(f"Found XML URL: {link_text}")
-        
-        logger.info(f"Extracted {len(xml_urls)} XML URLs from {url}")
-        return xml_urls
-        
-    except Exception as e:
-        logger.error(f"Error parsing page {url}: {e}")
-        return []
-
+    for file in response['files']:
+        if file['link'].endswith('.xml'):
+            xml_urls.append(file['link'])
+    
+    return xml_urls
 
 def chunk_list(items, chunk_size):
     """
@@ -118,7 +107,7 @@ def send_url_chunk_to_queue(urls, congress, session, bill_type):
     }
     
     try:
-        sqs.send_to_scraper_queue(message)
+        # sqs.send_to_scraper_queue(message)
         logger.info(f"Sent chunk of {len(urls)} URLs to SQS queue (Congress {congress}, Session {session}, Type {bill_type})")
     except Exception as e:
         logger.error(f"Failed to send chunk to SQS queue: {e}")
@@ -198,5 +187,5 @@ def handler(payload):
 
 if __name__ == "__main__":
     # Example usage
-    result = process_congress(congress=116)
+    result = process_congress(117)
     print(f"Processing complete: {result}")

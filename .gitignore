@@ -1,0 +1,59 @@
+!jest.config.js
+*.d.ts
+node_modules
+
+# CDK asset staging directory
+.cdk.staging
+cdk.out
+
+/.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+extra_pkgs/
+tmp/
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# Docker
+postgres_data/
+
+saved_model/
+
+# venv
+auxiom_env
+venv
+
+# pycache
+__pycache__cdk.out
+__pycache__
+___.pyc
+
+# packages
+*.egg-info

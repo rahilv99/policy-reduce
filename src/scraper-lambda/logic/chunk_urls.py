@@ -1,18 +1,18 @@
 '''
- This file will go from the root of the 116th congress (https://www.govinfo.gov/bulkdata/BILLS/116) and traverse the sublinks
+ This file will go from the root of the 116th congress (https://www.govinfo.gov/bulkdata/json/BILLS/116) and traverse the sublinks
  for:
     a) the 1st Session and 2nd Session
         b) hconres, hjres, hr, hres, s, sconres, sjres, sres
- Now it will be on a page like https://www.govinfo.gov/bulkdata/BILLS/116/1/hconres which will have a list of
+ Now it will be on a page like https://www.govinfo.gov/bulkdata/json/BILLS/116/1/hconres which will have a list of
  XML URLs.
- Then it will group the XML URLs (<link>https://www.govinfo.gov/bulkdata/BILLS/116/1/hconres/BILLS-116hconres12ih.xml</link>) 
- on the page using beautiful soup in groups of 500 and add them to a SQS queue using
+ Then it will group the XML URLs (<link>https://www.govinfo.gov/bulkdata/json/BILLS/116/1/hconres/BILLS-116hconres12ih.xml</link>) 
+ on the page into chunks of 500 and add them to a SQS queue using
  send_to_scraper_queue from common_utils.sqs.py to be processed by the ingest_bills.py file.
 '''
 
 import requests
 from bs4 import BeautifulSoup
-# import common_utils.sqs as sqs
+import common_utils.sqs as sqs
 import logging
 
 # Configure logging
@@ -31,13 +31,6 @@ MAX_RETRIES = 3
 
 
 def fetch_page(url, retries=MAX_RETRIES):
-    """
-    Fetch a page with retry logic.
-    
-    :param url: URL to fetch
-    :param retries: Number of retry attempts
-    :return: Response object or None if failed
-    """
     for attempt in range(retries):
         try:
             headers = {
@@ -56,12 +49,6 @@ def fetch_page(url, retries=MAX_RETRIES):
 
 
 def extract_xml_urls_from_page(url):
-    """
-    Extract XML URLs from a bill listing page.
-    
-    :param url: URL of the page containing bill links
-    :return: List of XML URLs found on the page
-    """
     logger.info(f"Fetching page: {url}")
     response = fetch_page(url)
     xml_urls = []
@@ -76,26 +63,11 @@ def extract_xml_urls_from_page(url):
     return xml_urls
 
 def chunk_list(items, chunk_size):
-    """
-    Split a list into chunks of specified size.
-    
-    :param items: List to chunk
-    :param chunk_size: Size of each chunk
-    :return: Generator yielding chunks
-    """
     for i in range(0, len(items), chunk_size):
         yield items[i:i + chunk_size]
 
 
 def send_url_chunk_to_queue(urls, congress, session, bill_type):
-    """
-    Send a chunk of URLs to the SQS queue.
-    
-    :param urls: List of XML URLs to send
-    :param congress: Congress number
-    :param session: Session number
-    :param bill_type: Type of bill
-    """
     message = {
         'action': 'e_ingest_bills',
         'payload': {
@@ -107,7 +79,7 @@ def send_url_chunk_to_queue(urls, congress, session, bill_type):
     }
     
     try:
-        # sqs.send_to_scraper_queue(message)
+        sqs.send_to_scraper_queue(message)
         logger.info(f"Sent chunk of {len(urls)} URLs to SQS queue (Congress {congress}, Session {session}, Type {bill_type})")
     except Exception as e:
         logger.error(f"Failed to send chunk to SQS queue: {e}")
@@ -115,11 +87,6 @@ def send_url_chunk_to_queue(urls, congress, session, bill_type):
 
 
 def process_congress(congress=116):
-    """
-    Process all bills for a given congress by traversing sessions and bill types.
-    
-    :param congress: Congress number (default: 116)
-    """
     logger.info(f"Starting to process Congress {congress}")
     
     total_urls = 0
@@ -187,5 +154,6 @@ def handler(payload):
 
 if __name__ == "__main__":
     # Example usage
-    result = process_congress(117)
-    print(f"Processing complete: {result}")
+    for congress in range(116, 119):
+        result = process_congress(congress)
+        print(f"Processing complete: {result}")

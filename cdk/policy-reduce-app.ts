@@ -10,6 +10,6 @@ const env = {
 console.log(`CDK Working with Account ${process.env.CDK_DEFAULT_ACCOUNT} Region ${process.env.CDK_DEFAULT_REGION}`);
 const app = new cdk.App();
 
-const coreStack = new CoreStack(app, "CoreStack", {env});
-new ScraperStack(app, 'ScraperStack', {env, coreStack});
-new NlpStack(app, 'NlpStack', {env, coreStack});
+const coreStack = new CoreStack(app, "PolicyReduceCoreStack", {env});
+new ScraperStack(app, 'PolicyReduceScraperStack', {env, coreStack});
+new NlpStack(app, 'PolicyReduceNlpStack', {env, coreStack});

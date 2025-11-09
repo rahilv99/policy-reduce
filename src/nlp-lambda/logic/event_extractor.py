@@ -75,7 +75,7 @@ def create_eventbridge_rule(batch_id, bill_ids):
     
     # Create the rule
     events_client.put_rule(
-        Name=f'batch-check-{batch_id}',
+        Name=f'policy-reduce-batch-check-{batch_id}',
         ScheduleExpression=f"rate(2 minutes)",
         Description=f"Check batch {batch_id} status every 2 minutes",
         State='ENABLED'
@@ -92,7 +92,7 @@ def create_eventbridge_rule(batch_id, bill_ids):
     
     # Add target to the rule - send message to nlp queue via SQS utils
     events_client.put_targets(
-        Rule=f'batch-check-{batch_id}',
+        Rule=f'policy-reduce-batch-check-{batch_id}',
         Targets=[
             {
                 'Id': f'nlp-queue-target-{batch_id}',

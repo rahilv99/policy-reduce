@@ -22,12 +22,12 @@ export class NlpStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: ExtendedProps) {
     super(scope, id, props);
 
-    const logGroup = new logs.LogGroup(this, "NlpLogGroup", {
-      logGroupName: "NlpLogGroup",
+    const logGroup = new logs.LogGroup(this, "PolicyReduceNlpLogGroup", {
+      logGroupName: "PolicyReduceNlpLogGroup",
       retention: cdk.aws_logs.RetentionDays.ONE_MONTH
     })
 
-    const lambdaFunction = new lambda.DockerImageFunction(this, 'NlpFunction', {
+    const lambdaFunction = new lambda.DockerImageFunction(this, 'PolicyReduceNlpFunction', {
       code: lambda.DockerImageCode.fromImageAsset('src', {
         platform: Platform.LINUX_AMD64,
         buildArgs: {},
@@ -53,15 +53,15 @@ export class NlpStack extends cdk.Stack {
     });
 
     // Alarm for Lambda function errors
-    const NlpLambdaFailureAlarm = new cloudwatch.Alarm(this, 'NlpLambdaFailureAlarm', {
+    const NlpLambdaFailureAlarm = new cloudwatch.Alarm(this, 'PolicyReduceNlpLambdaFailureAlarm', {
       metric: NlplambdaErrorMetric,
       threshold: 1,
       evaluationPeriods: 1,
       comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
-      alarmDescription: 'Alarm when Lambda function fails',
+      alarmDescription: 'Alarm when NLP Lambda function fails',
     });
 
-    const NlpLambdaFailureAlarmTopic = new sns.Topic(this, 'NlpLambdaFailureAlarmTopic');
+    const NlpLambdaFailureAlarmTopic = new sns.Topic(this, 'PolicyReduceNlpLambdaFailureAlarmTopic');
     NlpLambdaFailureAlarmTopic.addSubscription(new subs.EmailSubscription('rahilv99@gmail.com'));
     NlpLambdaFailureAlarm.addAlarmAction(new cloudwatchActions.SnsAction(NlpLambdaFailureAlarmTopic))
 
@@ -81,7 +81,7 @@ export class NlpStack extends cdk.Stack {
         'events:DescribeRule'
       ],
       resources: [
-        `arn:aws:events:${this.region}:${this.account}:rule/batch-check-*`
+        `arn:aws:events:${this.region}:${this.account}:rule/policy-reduce-batch-check-*`
       ]
     });
 

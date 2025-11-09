@@ -28,12 +28,13 @@ export class ScraperStack extends cdk.Stack {
     super(scope, id, props);
 
     // Create Scraper queue
-    this.scraperSQSQueue = new sqs.Queue(this, 'ScraperSqsQueue', {
+    this.scraperSQSQueue = new sqs.Queue(this, 'PolicyReduceScraperQueue', {
+        queueName: 'PolicyReduceScraperQueue',
         visibilityTimeout: cdk.Duration.seconds(60*30),     // 15 minutes
         deadLetterQueue: {
             maxReceiveCount: 5,
-            queue: new sqs.Queue(this, 'scraper_DLQ', {
-                queueName: 'ScraperSqsDLQ',
+            queue: new sqs.Queue(this, 'PolicyReduceScraperDLQ', {
+                queueName: 'PolicyReduceScraperQueue_DLQ',
                 retentionPeriod: cdk.Duration.days(14), // Retain messages in DLQ for 14 days
             })
         },
@@ -50,7 +51,7 @@ export class ScraperStack extends cdk.Stack {
     );
 
     // Create a CloudWatch Event Rule for the scraper schedule (daily)
-    const scraperRule = new events.Rule(this, 'ScraperRule', {
+    const scraperRule = new events.Rule(this, 'PolicyReduceScraperRule', {
       schedule: events.Schedule.cron({
       minute: '0',
       hour: '10',
@@ -67,27 +68,27 @@ export class ScraperStack extends cdk.Stack {
       message: events.RuleTargetInput.fromObject(messagePayload)
     }));
 
-    const logGroup = new logs.LogGroup(this, "ScraperLogGroup", {
-      logGroupName: "ScraperLogGroup",
+    const logGroup = new logs.LogGroup(this, "PolicyReduceScraperLogGroup", {
+      logGroupName: "PolicyReduceScraperLogGroup",
       retention: cdk.aws_logs.RetentionDays.ONE_MONTH
     })
 
-    new logs.MetricFilter(this, 'ErrorFilter', {
+    new logs.MetricFilter(this, 'PolicyReduceErrorFilter', {
       logGroup,
-      metricNamespace: 'Scraper/Metrics',
+      metricNamespace: 'PolicyReduce/Scraper',
       metricName: 'Error',
       filterPattern: logs.FilterPattern.literal('Error'),
       metricValue: '1',
     });
 
     const ErrorMetric = new cloudwatch.Metric({
-      namespace: 'Scraper/Metrics',
+      namespace: 'PolicyReduce/Scraper',
       metricName: 'Error',
       statistic: 'Sum',
       period: cdk.Duration.hours(20),
     });
 
-    const ErrorAlarm = new cloudwatch.Alarm(this, 'ErrorAlarm', {
+    const ErrorAlarm = new cloudwatch.Alarm(this, 'PolicyReduceScraperErrorAlarm', {
       metric: ErrorMetric,
       threshold: 1,
       evaluationPeriods: 1,
@@ -95,26 +96,26 @@ export class ScraperStack extends cdk.Stack {
       alarmDescription: 'Alarm when scraper unexpected error occurs',
     });
 
-    const ErrorAlarmTopic = new sns.Topic(this, 'ErrorAlarmTopic');
+    const ErrorAlarmTopic = new sns.Topic(this, 'PolicyReduceScraperErrorAlarmTopic');
     ErrorAlarmTopic.addSubscription(new subs.EmailSubscription('rahilv99@gmail.com'));
     ErrorAlarm.addAlarmAction(new cloudwatchActions.SnsAction(ErrorAlarmTopic));
     
-    new logs.MetricFilter(this, 'TotalRequeryErrorFilter', {
+    new logs.MetricFilter(this, 'PolicyReduceTotalRequeryErrorFilter', {
       logGroup,
-      metricNamespace: 'Scraper/Metrics',
+      metricNamespace: 'PolicyReduce/Scraper',
       metricName: 'TotalRequeryError',
       filterPattern: logs.FilterPattern.literal('Logging error'),
       metricValue: '1',
     });
 
     const TotalRequeryErrorMetric = new cloudwatch.Metric({
-      namespace: 'Scraper/Metrics',
+      namespace: 'PolicyReduce/Scraper',
       metricName: 'TotalRequeryError',
       statistic: 'Sum',
       period: cdk.Duration.hours(20),
     });
 
-    const TotalRequeryErrorAlarm = new cloudwatch.Alarm(this, 'TotalRequeryErrorAlarm', {
+    const TotalRequeryErrorAlarm = new cloudwatch.Alarm(this, 'PolicyReduceTotalRequeryErrorAlarm', {
       metric: TotalRequeryErrorMetric,
       threshold: 1,
       evaluationPeriods: 1,
@@ -122,27 +123,27 @@ export class ScraperStack extends cdk.Stack {
       alarmDescription: 'Alarm when one or more error is found in the requery process',
     });
 
-    const TotalRequeryErrorTopic = new sns.Topic(this, 'TotalRequeryErrorTopic');
+    const TotalRequeryErrorTopic = new sns.Topic(this, 'PolicyReduceTotalRequeryErrorTopic');
     TotalRequeryErrorTopic.addSubscription(new subs.EmailSubscription('rahilv99@gmail.com'));
     TotalRequeryErrorAlarm.addAlarmAction(new cloudwatchActions.SnsAction(TotalRequeryErrorTopic));
 
     // Metric filter and alarm for EventBridge rule creation errors
-    new logs.MetricFilter(this, 'PollCreationErrorFilter', {
+    new logs.MetricFilter(this, 'PolicyReducePollCreationErrorFilter', {
       logGroup,
-      metricNamespace: 'Scraper/Metrics',
+      metricNamespace: 'PolicyReduce/Scraper',
       metricName: 'PollCreationError',
       filterPattern: logs.FilterPattern.literal('Error creating eventbridge rule'),
       metricValue: '1',
     });
 
     const PollCreationErrorMetric = new cloudwatch.Metric({
-      namespace: 'Scraper/Metrics',
+      namespace: 'PolicyReduce/Scraper',
       metricName: 'PollCreationError',
       statistic: 'Sum',
       period: cdk.Duration.hours(20),
     });
 
-    const PollCreationErrorAlarm = new cloudwatch.Alarm(this, 'PollCreationErrorAlarm', {
+    const PollCreationErrorAlarm = new cloudwatch.Alarm(this, 'PolicyReducePollCreationErrorAlarm', {
       metric: PollCreationErrorMetric,
       threshold: 1,
       evaluationPeriods: 1,
@@ -150,11 +151,11 @@ export class ScraperStack extends cdk.Stack {
       alarmDescription: 'Alarm when EventBridge rule creation fails',
     });
 
-    const PollCreationErrorTopic = new sns.Topic(this, 'PollCreationErrorTopic');
+    const PollCreationErrorTopic = new sns.Topic(this, 'PolicyReducePollCreationErrorTopic');
     PollCreationErrorTopic.addSubscription(new subs.EmailSubscription('rahilv99@gmail.com'));
     PollCreationErrorAlarm.addAlarmAction(new cloudwatchActions.SnsAction(PollCreationErrorTopic));
 
-    const scraperLambdaRole = new iam.Role(this, 'ScraperLambdaRole', {
+    const scraperLambdaRole = new iam.Role(this, 'PolicyReduceScraperLambdaRole', {
       assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
     });
 
@@ -167,7 +168,7 @@ export class ScraperStack extends cdk.Stack {
     props.coreStack.s3Bucket.grantReadWrite(scraperLambdaRole);
     props.coreStack.s3ScraperBucket.grantReadWrite(scraperLambdaRole);
 
-    const lambdaFunction = new lambda.DockerImageFunction(this, 'ScraperFunction', {
+    const lambdaFunction = new lambda.DockerImageFunction(this, 'PolicyReduceScraperFunction', {
       code: lambda.DockerImageCode.fromImageAsset('src', {
         platform: Platform.LINUX_AMD64,
         buildArgs: {},
@@ -197,15 +198,15 @@ export class ScraperStack extends cdk.Stack {
     });
 
     // Alarm for Lambda function errors
-    const ScraperLambdaFailureAlarm = new cloudwatch.Alarm(this, 'ScraperLambdaFailureAlarm', {
+    const ScraperLambdaFailureAlarm = new cloudwatch.Alarm(this, 'PolicyReduceScraperLambdaFailureAlarm', {
       metric: ScraperlambdaErrorMetric,
       threshold: 1,
       evaluationPeriods: 1,
       comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
-      alarmDescription: 'Alarm when Lambda function fails',
+      alarmDescription: 'Alarm when Scraper Lambda function fails',
     });
 
-    const ScraperLambdaFailureAlarmTopic = new sns.Topic(this, 'ScraperLambdaFailureAlarmTopic');
+    const ScraperLambdaFailureAlarmTopic = new sns.Topic(this, 'PolicyReduceScraperLambdaFailureAlarmTopic');
     ScraperLambdaFailureAlarmTopic.addSubscription(new subs.EmailSubscription('rahilv99@gmail.com'));
     ScraperLambdaFailureAlarm.addAlarmAction(new cloudwatchActions.SnsAction(ScraperLambdaFailureAlarmTopic));
 

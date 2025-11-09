@@ -16,8 +16,8 @@ export class CoreStack extends cdk.Stack {
     super(scope, id, props);
 
     // Create primary bucket
-    this.s3Bucket = new s3.Bucket(this, 's3Bucket', {
-      bucketName: `${this.account}-bucket`,
+    this.s3Bucket = new s3.Bucket(this, 'PolicyReduceS3Bucket', {
+      bucketName: `policy-reduce-${this.account}-data`,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
@@ -25,8 +25,8 @@ export class CoreStack extends cdk.Stack {
     });
 
     // Create bucket for scraper
-    this.s3ScraperBucket = new s3.Bucket(this, 's3ScraperBucket', {
-      bucketName: `${this.account}-scraper-bucket`,
+    this.s3ScraperBucket = new s3.Bucket(this, 'PolicyReduceScraperBucket', {
+      bucketName: `policy-reduce-${this.account}-scraper`,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
@@ -34,7 +34,7 @@ export class CoreStack extends cdk.Stack {
     });
 
     // Create Lambda Role with S3 Permissions
-    this.generalLambdaRole = new iam.Role(this, 'GeneralLambdaRole', {
+    this.generalLambdaRole = new iam.Role(this, 'PolicyReduceLambdaRole', {
         assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
       });
 
@@ -47,12 +47,13 @@ export class CoreStack extends cdk.Stack {
     this.s3ScraperBucket.grantReadWrite(this.generalLambdaRole);
 
 
-    this.nlpSQSQueue = new sqs.Queue(this, 'nlpSQSQueue', {
+    this.nlpSQSQueue = new sqs.Queue(this, 'PolicyReduceNlpQueue', {
+        queueName: 'PolicyReduceNlpQueue',
         visibilityTimeout: cdk.Duration.seconds(60*15), // 15 minutes
         deadLetterQueue: {
             maxReceiveCount: 2,
-            queue: new sqs.Queue(this, 'nlpDLQ', {
-                queueName: 'nlpSQSQueue_DLQ',
+            queue: new sqs.Queue(this, 'PolicyReduceNlpDLQ', {
+                queueName: 'PolicyReduceNlpQueue_DLQ',
                 retentionPeriod: cdk.Duration.days(14), // Retain messages in DLQ for 14 days
             })
         },
@@ -61,11 +62,11 @@ export class CoreStack extends cdk.Stack {
     // Outputs
     new cdk.CfnOutput(this, 'BucketName', {
         value: this.s3Bucket.bucketName,
-        description: 'Astra S3 Bucket to store data',
+        description: 'Policy Reduce S3 Bucket to store data',
       });
     new cdk.CfnOutput(this, 'ScraperBucketName', {
         value: this.s3ScraperBucket.bucketName,
-        description: 'Scraper bucket for news indexing',
+        description: 'Policy Reduce scraper bucket for congressional bill indexing',
       });
   }
 }

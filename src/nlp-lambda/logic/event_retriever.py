@@ -206,14 +206,14 @@ def cleanup_eventbridge_rule(batch_id):
     
     # Remove targets first
     events_client.remove_targets(
-        Rule=f'batch-check-{batch_id}',
+        Rule=f'policy-reduce-batch-check-{batch_id}',
         Ids=[f'nlp-queue-target-{batch_id}']
     )
     
     # Delete the rule
-    events_client.delete_rule(Name=f'batch-check-{batch_id}')
+    events_client.delete_rule(Name=f'policy-reduce-batch-check-{batch_id}')
 
-    print(f"Cleaned up EventBridge: batch-check-{batch_id}")
+    print(f"Cleaned up EventBridge: policy-reduce-batch-check-{batch_id}")
 
 def main(batch_id, bill_ids):
     result = process_batch_results(batch_id)

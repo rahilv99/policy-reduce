@@ -32,7 +32,8 @@ def _handler(event, context):
 
     # Map actions to internal functions
     action_map = {
-        "e_ingest": logic.ingest.handler
+        "e_ingest": logic.ingest.handler,
+        "e_ingest_bills": logic.ingest_bills.handler,
     }
 
     # Route to the appropriate function

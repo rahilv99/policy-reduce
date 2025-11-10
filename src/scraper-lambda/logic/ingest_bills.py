@@ -27,11 +27,13 @@
 '''
 
 import os
+import xml
 import requests
 import xml.etree.ElementTree as ET
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 import logging
+from bs4 import BeautifulSoup
 
 # Configure logging
 logging.basicConfig(
@@ -163,6 +165,9 @@ def parse_xml_bill(xml_content, url):
         if date_elem is not None and date_elem.text:
             dc_date = date_elem.text.strip()
         
+        soup = BeautifulSoup(xml_content, "xml")
+        full_text = soup.get_text(separator="\n", strip=True)
+
         # Build document data dictionary
         doc_data = {
             'id': doc_id,
@@ -173,9 +178,8 @@ def parse_xml_bill(xml_content, url):
             'publisher': publisher,
             'dc_date': dc_date,
             'URL': url,
-            'full_xml': xml_content
+            'full_text': full_text
         }
-        
         return doc_data
         
     except ET.ParseError as e:
@@ -269,3 +273,6 @@ def handler(payload):
     logger.info(f"  - Successful: {successful}")
     logger.info(f"  - Failed: {failed}")
     logger.info(f"="*60)
+
+if __name__ == "__main__":
+    process_bill_url("https://www.govinfo.gov/bulkdata/BILLS/115/2/sconres/BILLS-115sconres35ats.xml")

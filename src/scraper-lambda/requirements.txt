@@ -3,6 +3,7 @@ boto3
 PyPDF2
 requests
 beautifulsoup4
+lxml
 psycopg2-binary
 pandas
 gnews

@@ -1,4 +1,6 @@
 import logic.ingest
+import logic.ingest_bills
+import logic.chunk_urls
 import json
 import traceback
 
@@ -34,6 +36,7 @@ def _handler(event, context):
     action_map = {
         "e_ingest": logic.ingest.handler,
         "e_ingest_bills": logic.ingest_bills.handler,
+        "e_chunk_urls": logic.chunk_urls.handler,
     }
 
     # Route to the appropriate function

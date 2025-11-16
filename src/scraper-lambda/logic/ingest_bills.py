@@ -34,6 +34,7 @@ from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 import logging
 from bs4 import BeautifulSoup
+from doc_sanitizer import sanitize_document
 
 # Configure logging
 logging.basicConfig(
@@ -209,6 +210,10 @@ def process_bill_url(url):
         doc_data = parse_xml_bill(xml_content, url)
         if not doc_data:
             logger.error(f"Failed to parse bill from {url}")
+            return False
+
+        # Sanitize document using doc_sanitizer
+        if not sanitize_document(doc_data, url):
             return False
         
         # Check if document already exists

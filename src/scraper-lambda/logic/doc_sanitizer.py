@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 MIN_BODY_LEN = 1000           # likely not a policy bill
 
 ALLOWED_TYPES = {
-    'hr', 'h.r.', 's', 's.', 'hjres', 'h.j.res.', 'sjres', 's.j.res.'
+    'hr', 's', 'hjres', 'sjres',
 }
 
 def sanitize_document(doc_data, url):
@@ -18,7 +18,7 @@ def sanitize_document(doc_data, url):
         logger.error(f"Full text is too short ({len(full_text)} chars) for {url}")
         return False
     
-    if doc_type and not any(x in doc_type for x in ALLOWED_TYPES):
+    if not any(f'/{t}/' in url for t in ALLOWED_TYPES):
         logger.info(f"Excluding because doc_type '{doc_type}' not in allowed types")
         return False
 
